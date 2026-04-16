@@ -1,0 +1,76 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.pnpm-store/
+
+# TypeScript
+dist/
+build/
+*.tsbuildinfo
+
+# Testing
+coverage/
+.nyc_output/
+.vitest/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Secrets (CRITICAL: never commit KYC provider API keys)
+*.p12
+*.pem
+*.key
+*.crt
+certs/
+.certs/
+secrets/
+kyc-credentials/
+
+# PII test fixtures (never commit real IDs / documents)
+fixtures/real-*
+fixtures/pii-*
+
+# Logs
+logs/
+*.log
+
+# Runtime / temp
+tmp/
+.tmp/
+*.pid
+
+# Docker
+.docker/
+
+# Helm
+charts/*/charts/
+charts/*/Chart.lock
+
+# OS
+Thumbs.db
+ehthumbs.db
+
+# Generated proto
+src/generated/
+proto/gen/
+
+# Sanctions list caches (re-fetch fresh)
+sanctions-cache/
+ofac-cache/
+
+# Storybook / docs builds
+storybook-static/
+.docusaurus/
+docs/_build/
