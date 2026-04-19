@@ -1,0 +1,196 @@
+syntax = "proto3";
+
+package compliance.v1;
+
+import "google/protobuf/timestamp.proto";
+import "compliance/v1/common.proto";
+
+// -----------------------------------------------------------------------------
+// ComplianceAdmin — KYC, KYB, age verification, PoP orchestration.
+// Fase 1 wires: StartVerification, GetVerificationStatus, ListVerifications,
+// VerifyAge, QuickCheck (stub).
+// Fase 2+: VerifyBusiness, RequestProofOfPersonhood, VerifyProofOfPersonhood.
+// -----------------------------------------------------------------------------
+service ComplianceAdmin {
+  rpc StartVerification(StartVerificationRequest) returns (VerificationSessionAck);
+  rpc GetVerificationStatus(GetVerificationStatusRequest) returns (VerificationSession);
+  rpc ListVerifications(ListVerificationsRequest) returns (stream VerificationSession);
+  rpc VerifyAge(VerifyAgeRequest) returns (AgeVerificationResult);
+  rpc QuickCheck(QuickCheckRequest) returns (QuickCheckResult);
+  // UNIMPLEMENTED in Fase 1 (lands in Fase 2 with OndatoAdapter KYB).
+  rpc VerifyBusiness(VerifyBusinessRequest) returns (BusinessVerificationResult);
+  // UNIMPLEMENTED in Fase 1 (PoP is Fase 4 / deferred).
+  rpc RequestProofOfPersonhood(PoPRequest) returns (PoPChallenge);
+  rpc VerifyProofOfPersonhood(PoPVerifyRequest) returns (PoPResult);
+}
+
+// -----------------------------------------------------------------------------
+// Enums
+// -----------------------------------------------------------------------------
+enum VerificationKind {
+  VERIFICATION_KIND_UNSPECIFIED = 0;
+  VERIFICATION_KIND_KYC_DOCUMENT = 1;
+  VERIFICATION_KIND_KYC_LIVENESS = 2;
+  VERIFICATION_KIND_KYC_FACE_MATCH = 3;
+  VERIFICATION_KIND_KYB_REGISTRATION = 4;
+  VERIFICATION_KIND_KYB_UBO = 5;
+  VERIFICATION_KIND_AGE = 6;
+  VERIFICATION_KIND_PROOF_OF_ADDRESS = 7;
+  VERIFICATION_KIND_PROOF_OF_PERSONHOOD = 8;
+}
+
+enum VerificationStatus {
+  VERIFICATION_STATUS_UNSPECIFIED = 0;
+  VERIFICATION_STATUS_INITIATED = 1;
+  VERIFICATION_STATUS_PENDING = 2;
+  VERIFICATION_STATUS_VERIFIED = 3;
+  VERIFICATION_STATUS_FAILED = 4;
+  VERIFICATION_STATUS_EXPIRED = 5;
+}
+
+enum Verdict {
+  VERDICT_UNSPECIFIED = 0;
+  VERDICT_PASS = 1;
+  VERDICT_FAIL = 2;
+  VERDICT_MANUAL_REVIEW = 3;
+}
+
+// -----------------------------------------------------------------------------
+// StartVerification
+// -----------------------------------------------------------------------------
+message StartVerificationRequest {
+  SubjectRef subject = 1;
+  VerificationKind kind = 2;
+  Jurisdiction country = 3;
+  // Required when creating a new Identity. If subject.identity_id is set and
+  // the identity exists, these fields are ignored.
+  IdentityDraft identity_draft = 4;
+  // Idempotency key — repeat calls with the same key return the same session.
+  string idempotency_key = 5;
+  // Optional template override; otherwise composition root picks by kind+country.
+  string provider_template_id = 6;
+}
+
+message IdentityDraft {
+  PIIString tax_id_value = 1;
+  Jurisdiction tax_id_country = 2;
+  PIIString first_name = 3;
+  PIIString last_name = 4;
+  // ISO date YYYY-MM-DD; wrap as PIIString to force redaction.
+  PIIString date_of_birth = 5;
+}
+
+message VerificationSessionAck {
+  UUID session_id = 1;
+  string provider_session_id = 2;
+  string hosted_flow_url = 3;
+  google.protobuf.Timestamp expires_at = 4;
+}
+
+// -----------------------------------------------------------------------------
+// GetVerificationStatus / ListVerifications
+// -----------------------------------------------------------------------------
+message GetVerificationStatusRequest {
+  UUID session_id = 1;
+}
+
+message VerificationSession {
+  UUID session_id = 1;
+  SubjectRef subject = 2;
+  VerificationKind kind = 3;
+  ProviderCode provider = 4;
+  string provider_session_id = 5;
+  VerificationStatus status = 6;
+  VerificationDecision decision = 7;
+  google.protobuf.Timestamp initiated_at = 8;
+  google.protobuf.Timestamp completed_at = 9;
+  google.protobuf.Timestamp expires_at = 10;
+  UUID replaces_session_id = 11;
+}
+
+message VerificationDecision {
+  Verdict verdict = 1;
+  repeated string reasons = 2;
+  // 0.00 - 100.00, expressed as string to avoid float rounding across wires.
+  string provider_score = 3;
+}
+
+message ListVerificationsRequest {
+  SubjectRef subject = 1;
+  VerificationStatus status_filter = 2;
+  google.protobuf.Timestamp from = 3;
+  google.protobuf.Timestamp to = 4;
+  uint32 limit = 5;
+}
+
+// -----------------------------------------------------------------------------
+// VerifyAge (Ondato-backed in Fase 1)
+// -----------------------------------------------------------------------------
+message VerifyAgeRequest {
+  SubjectRef subject = 1;
+  uint32 minimum_age = 2;
+  Jurisdiction country = 3;
+  string idempotency_key = 4;
+}
+
+message AgeVerificationResult {
+  UUID session_id = 1;
+  bool meets_minimum = 2;
+  string hosted_flow_url = 3;
+  google.protobuf.Timestamp expires_at = 4;
+}
+
+// -----------------------------------------------------------------------------
+// QuickCheck — Fase 1 stub, real implementation lands in Fase 2 alongside
+// invoice-core integration.
+// -----------------------------------------------------------------------------
+message QuickCheckRequest {
+  string receiver_id = 1;
+  PIIString email = 2;
+  PIIString phone = 3;
+}
+
+message QuickCheckResult {
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+    STATUS_STUB = 1;
+    STATUS_PASS = 2;
+    STATUS_FAIL = 3;
+    STATUS_UNKNOWN = 4;
+  }
+  Status status = 1;
+  string message = 2;
+}
+
+// -----------------------------------------------------------------------------
+// Fase 2+ stubs (UNIMPLEMENTED)
+// -----------------------------------------------------------------------------
+message VerifyBusinessRequest {
+  UUID business_id = 1;
+  Jurisdiction country = 2;
+}
+
+message BusinessVerificationResult {
+  UUID session_id = 1;
+  Verdict verdict = 2;
+}
+
+message PoPRequest {
+  UUID identity_id = 1;
+}
+
+message PoPChallenge {
+  string challenge_id = 1;
+  string challenge_payload = 2;
+  google.protobuf.Timestamp expires_at = 3;
+}
+
+message PoPVerifyRequest {
+  string challenge_id = 1;
+  string response_payload = 2;
+}
+
+message PoPResult {
+  bool verified = 1;
+  string reason = 2;
+}

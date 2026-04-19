@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-typecheck-test:
+    name: Lint + Typecheck + Test + Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint (Biome)
+        run: pnpm run lint
+
+      - name: Typecheck (proto)
+        run: pnpm --filter @compliance-core/proto exec tsc --noEmit --project tsconfig.json
+
+      - name: Build (all packages)
+        run: pnpm run build
+
+      - name: Test
+        run: pnpm run test
+
+  proto-lint:
+    name: Proto lint + breaking-change check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          version: 1.47.2
+
+      - name: buf lint
+        run: cd proto && buf lint
+
+      - name: buf breaking check
+        if: github.event_name == 'pull_request'
+        run: cd proto && buf breaking --against "https://github.com/${REPO}.git#branch=main,subdir=proto"
+        continue-on-error: true

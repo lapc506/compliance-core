@@ -1,0 +1,173 @@
+syntax = "proto3";
+
+package compliance.v1;
+
+import "google/protobuf/timestamp.proto";
+import "compliance/v1/common.proto";
+
+// -----------------------------------------------------------------------------
+// ComplianceScreening — sanctions, PEP, adverse media screening + resolution.
+// Fase 1 wires: ScreenSanctions, ResolveMatch, RefreshSanctionsLists,
+// GetRiskScore (stub returns LOW).
+// Fase 2+: ScreenPEP, ScreenAdverseMedia.
+// -----------------------------------------------------------------------------
+service ComplianceScreening {
+  rpc ScreenSanctions(ScreenSanctionsRequest) returns (ScreenResult);
+  rpc ResolveMatch(ResolveMatchRequest) returns (MatchResolution);
+  rpc RefreshSanctionsLists(RefreshListsRequest) returns (RefreshReport);
+  rpc GetRiskScore(GetRiskScoreRequest) returns (RiskScore);
+  // UNIMPLEMENTED in Fase 1 (Snap Compliance adapter lands Fase 2).
+  rpc ScreenPEP(ScreenPEPRequest) returns (ScreenResult);
+  rpc ScreenAdverseMedia(ScreenAdverseMediaRequest) returns (ScreenResult);
+}
+
+// -----------------------------------------------------------------------------
+// Enums
+// -----------------------------------------------------------------------------
+enum SanctionsList {
+  SANCTIONS_LIST_UNSPECIFIED = 0;
+  SANCTIONS_LIST_OFAC_SDN = 1;
+  SANCTIONS_LIST_OFAC_CONSOLIDATED_NON_SDN = 2;
+  SANCTIONS_LIST_UN_CONSOLIDATED = 3;
+  SANCTIONS_LIST_EU_CONSOLIDATED = 4;
+  SANCTIONS_LIST_UK_HMT = 5;
+  SANCTIONS_LIST_WORLD_BANK_DEBARRED = 6;
+  SANCTIONS_LIST_INTERPOL_RED_NOTICES = 7;
+}
+
+enum ReviewStatus {
+  REVIEW_STATUS_UNSPECIFIED = 0;
+  REVIEW_STATUS_PENDING = 1;
+  REVIEW_STATUS_CONFIRMED_MATCH = 2;
+  REVIEW_STATUS_FALSE_POSITIVE = 3;
+  REVIEW_STATUS_ESCALATED = 4;
+}
+
+enum MatchedField {
+  MATCHED_FIELD_UNSPECIFIED = 0;
+  MATCHED_FIELD_NAME = 1;
+  MATCHED_FIELD_DOB = 2;
+  MATCHED_FIELD_ADDRESS = 3;
+  MATCHED_FIELD_ID_NUMBER = 4;
+}
+
+enum RiskBand {
+  RISK_BAND_UNSPECIFIED = 0;
+  RISK_BAND_LOW = 1;
+  RISK_BAND_MEDIUM = 2;
+  RISK_BAND_HIGH = 3;
+  RISK_BAND_SEVERE = 4;
+}
+
+// -----------------------------------------------------------------------------
+// ScreenSanctions
+// -----------------------------------------------------------------------------
+message ScreenSanctionsRequest {
+  SubjectRef subject = 1;
+  repeated SanctionsList lists = 2;
+  // Overrides tenant default threshold (default 80 per env SANCTIONS_MATCH_THRESHOLD).
+  double match_threshold = 3;
+}
+
+message ScreenResult {
+  repeated SanctionsMatch matches = 1;
+  uint32 candidates_considered = 2;
+  google.protobuf.Timestamp screened_at = 3;
+}
+
+message SanctionsMatch {
+  UUID id = 1;
+  SubjectRef subject = 2;
+  SanctionsList list_source = 3;
+  MatchedEntry matched_entry = 4;
+  // 0.00 - 100.00 normalized confidence score.
+  double confidence = 5;
+  ReviewStatus review_status = 6;
+  ReviewDecision review_decision = 7;
+  google.protobuf.Timestamp detected_at = 8;
+}
+
+message MatchedEntry {
+  string list_entry_id = 1;
+  string name = 2;
+  repeated string aliases = 3;
+  repeated MatchedField matched_fields = 4;
+}
+
+message ReviewDecision {
+  string reviewer_user_id = 1;
+  google.protobuf.Timestamp reviewed_at = 2;
+  string notes = 3;
+}
+
+// -----------------------------------------------------------------------------
+// ResolveMatch
+// -----------------------------------------------------------------------------
+message ResolveMatchRequest {
+  UUID match_id = 1;
+  ReviewStatus resolution = 2;
+  string reviewer_user_id = 3;
+  string notes = 4;
+}
+
+message MatchResolution {
+  SanctionsMatch match = 1;
+}
+
+// -----------------------------------------------------------------------------
+// RefreshSanctionsLists
+// -----------------------------------------------------------------------------
+message RefreshListsRequest {
+  repeated SanctionsList sources = 1;
+  bool force = 2;
+}
+
+message RefreshReport {
+  repeated RefreshListResult results = 1;
+  google.protobuf.Timestamp refreshed_at = 2;
+}
+
+message RefreshListResult {
+  SanctionsList list = 1;
+  uint32 added = 2;
+  uint32 updated = 3;
+  uint32 retired = 4;
+  uint32 total = 5;
+  uint32 duration_ms = 6;
+  string list_checksum = 7;
+}
+
+// -----------------------------------------------------------------------------
+// GetRiskScore (Fase 1 stub returns LOW band)
+// -----------------------------------------------------------------------------
+message GetRiskScoreRequest {
+  SubjectRef subject = 1;
+}
+
+message RiskScore {
+  SubjectRef subject = 1;
+  // 0-100.
+  uint32 score = 2;
+  RiskBand band = 3;
+  repeated RiskFactor factors = 4;
+  google.protobuf.Timestamp calculated_at = 5;
+  google.protobuf.Timestamp valid_until = 6;
+}
+
+message RiskFactor {
+  string code = 1;
+  double weight = 2;
+  UUID evidence_ref = 3;
+}
+
+// -----------------------------------------------------------------------------
+// Fase 2+ stubs
+// -----------------------------------------------------------------------------
+message ScreenPEPRequest {
+  SubjectRef subject = 1;
+}
+
+message ScreenAdverseMediaRequest {
+  SubjectRef subject = 1;
+  repeated Jurisdiction jurisdictions = 2;
+}

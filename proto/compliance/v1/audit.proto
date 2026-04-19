@@ -1,0 +1,85 @@
+syntax = "proto3";
+
+package compliance.v1;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+import "compliance/v1/common.proto";
+
+// -----------------------------------------------------------------------------
+// ComplianceAudit — append-only SHA-256 chained audit trail.
+// Used by compliance officers, auditors (read-only RBAC), and by SUGEF/
+// PRODHAB during regulatory inspections (spec §12.4, Ley 8204 art. 16).
+// -----------------------------------------------------------------------------
+service ComplianceAudit {
+  rpc AppendEvent(AppendEventRequest) returns (Ack);
+  rpc VerifyIntegrity(VerifyIntegrityRequest) returns (IntegrityReport);
+  rpc ExportAuditLog(ExportAuditLogRequest) returns (stream ComplianceEvent);
+}
+
+// -----------------------------------------------------------------------------
+// AppendEvent
+// -----------------------------------------------------------------------------
+message AppendEventRequest {
+  string event_type = 1;
+  ActorRef actor = 2;
+  SubjectRef subject = 3;
+  // Payload MUST NOT contain raw PII — redact via middleware before submit.
+  google.protobuf.Struct payload = 4;
+  google.protobuf.Timestamp occurred_at = 5;
+}
+
+message ActorRef {
+  enum Kind {
+    KIND_UNSPECIFIED = 0;
+    KIND_SYSTEM = 1;
+    KIND_USER = 2;
+    KIND_PROVIDER = 3;
+  }
+  Kind kind = 1;
+  string id = 2;
+}
+
+// -----------------------------------------------------------------------------
+// ComplianceEvent — one row of the audit log (spec §4.1).
+// -----------------------------------------------------------------------------
+message ComplianceEvent {
+  int64 seq_number = 1;
+  // SHA-256 hex of previous event's hash; genesis = "0".repeat(64).
+  string prev_hash = 2;
+  // SHA-256 hex of this event including prev_hash.
+  string hash = 3;
+  string event_type = 4;
+  ActorRef actor = 5;
+  SubjectRef subject = 6;
+  google.protobuf.Struct payload = 7;
+  google.protobuf.Timestamp occurred_at = 8;
+  google.protobuf.Timestamp created_at = 9;
+}
+
+// -----------------------------------------------------------------------------
+// VerifyIntegrity
+// -----------------------------------------------------------------------------
+message VerifyIntegrityRequest {
+  int64 from_seq = 1;
+  int64 to_seq = 2;
+}
+
+message IntegrityReport {
+  bool ok = 1;
+  int64 broken_at = 2;
+  string reason = 3;
+  int64 events_verified = 4;
+  string chain_head_hash = 5;
+  google.protobuf.Timestamp verified_at = 6;
+}
+
+// -----------------------------------------------------------------------------
+// ExportAuditLog — streaming, supports 7-year retention windows.
+// -----------------------------------------------------------------------------
+message ExportAuditLogRequest {
+  google.protobuf.Timestamp from = 1;
+  google.protobuf.Timestamp to = 2;
+  SubjectRef subject_filter = 3;
+  repeated string event_type_filter = 4;
+}

@@ -51,6 +51,9 @@ tmp/
 .tmp/
 *.pid
 
+# Worktrees (local-only helper dir used by execution agents)
+.worktrees/
+
 # Docker
 .docker/
 
@@ -62,8 +65,8 @@ charts/*/Chart.lock
 Thumbs.db
 ehthumbs.db
 
-# Generated proto
-src/generated/
+# Generated proto (regenerated in CI via `pnpm proto:gen`; not committed)
+packages/*/src/generated/
 proto/gen/
 
 # Sanctions list caches (re-fetch fresh)
