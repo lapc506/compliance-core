@@ -27,6 +27,19 @@ importers:
         specifier: 2.1.4
         version: 2.1.4(@types/node@22.9.0)
 
+  packages/proto:
+    dependencies:
+      '@bufbuild/protobuf':
+        specifier: 2.11.0
+        version: 2.11.0
+      '@connectrpc/connect':
+        specifier: 2.0.2
+        version: 2.0.2(@bufbuild/protobuf@2.11.0)
+    devDependencies:
+      typescript:
+        specifier: 5.6.3
+        version: 5.6.3
+
 packages:
 
   '@ampproject/remapping@2.3.0':
@@ -152,6 +165,14 @@ packages:
     resolution: {integrity: sha512-glY5kCAoO4+a7HvDb+BLOdoHSdCk4mdXdkp53H8JFz7maOnkxCiHHXgRX+taFyEu25N8ybn7NjZFrZSdRwq2sA==}
     engines: {node: '>=12'}
     hasBin: true
+
+  '@bufbuild/protobuf@2.11.0':
+    resolution: {integrity: sha512-sBXGT13cpmPR5BMgHE6UEEfEaShh5Ror6rfN3yEK5si7QVrtZg8LEPQb0VVhiLRUslD2yLnXtnRzG035J/mZXQ==}
+
+  '@connectrpc/connect@2.0.2':
+    resolution: {integrity: sha512-xZuylIUNvNlH52e/4eQsZvY4QZyDJRtEFEDnn/yBrv5Xi5ZZI/p8X+GAHH35ucVaBvv9u7OzHZo8+tEh1EFTxA==}
+    peerDependencies:
+      '@bufbuild/protobuf': ^2.2.0
 
   '@esbuild/aix-ppc64@0.21.5':
     resolution: {integrity: sha512-1SDgH6ZSPTlggy1yI6+Dbkiz8xzpHJEVAlF/AM1tHPLsf5STom9rwtjE4hKAF20FfXXNTFqEYXyJNWh1GiZedQ==}
@@ -938,6 +959,12 @@ snapshots:
       '@bufbuild/buf-linux-x64': 1.47.2
       '@bufbuild/buf-win32-arm64': 1.47.2
       '@bufbuild/buf-win32-x64': 1.47.2
+
+  '@bufbuild/protobuf@2.11.0': {}
+
+  '@connectrpc/connect@2.0.2(@bufbuild/protobuf@2.11.0)':
+    dependencies:
+      '@bufbuild/protobuf': 2.11.0
 
   '@esbuild/aix-ppc64@0.21.5':
     optional: true

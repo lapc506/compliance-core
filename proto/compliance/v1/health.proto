@@ -1,0 +1,81 @@
+syntax = "proto3";
+
+package compliance.v1;
+
+import "google/protobuf/timestamp.proto";
+import "compliance/v1/common.proto";
+
+// -----------------------------------------------------------------------------
+// ComplianceHealth — operational health of providers, sanctions feeds, and
+// circuit breakers. Used by dashboards, alerting, and readiness probes.
+// -----------------------------------------------------------------------------
+service ComplianceHealth {
+  rpc GetProviderHealth(GetProviderHealthRequest) returns (ProviderHealthReport);
+  rpc GetListFreshness(GetListFreshnessRequest) returns (ListFreshnessReport);
+  rpc GetCircuitBreakerState(CircuitBreakerRequest) returns (CircuitBreakerStatus);
+}
+
+// -----------------------------------------------------------------------------
+// Provider health
+// -----------------------------------------------------------------------------
+message GetProviderHealthRequest {
+  repeated ProviderCode providers = 1;
+}
+
+message ProviderHealthReport {
+  repeated ProviderHealth providers = 1;
+}
+
+message ProviderHealth {
+  ProviderCode provider = 1;
+  double latency_p95_seconds = 2;
+  double latency_p99_seconds = 3;
+  double error_rate = 4;
+  CircuitState circuit_state = 5;
+  google.protobuf.Timestamp observed_at = 6;
+}
+
+// -----------------------------------------------------------------------------
+// List freshness
+// -----------------------------------------------------------------------------
+message GetListFreshnessRequest {
+  repeated string list_sources = 1;
+}
+
+message ListFreshnessReport {
+  repeated ListFreshness lists = 1;
+}
+
+message ListFreshness {
+  string list_source = 1;
+  google.protobuf.Timestamp last_refreshed_at = 2;
+  int64 age_seconds = 3;
+  bool stale = 4;
+  string last_checksum = 5;
+}
+
+// -----------------------------------------------------------------------------
+// Circuit breaker
+// -----------------------------------------------------------------------------
+message CircuitBreakerRequest {
+  repeated ProviderCode providers = 1;
+}
+
+enum CircuitState {
+  CIRCUIT_STATE_UNSPECIFIED = 0;
+  CIRCUIT_STATE_CLOSED = 1;
+  CIRCUIT_STATE_HALF_OPEN = 2;
+  CIRCUIT_STATE_OPEN = 3;
+}
+
+message CircuitBreakerStatus {
+  repeated CircuitBreakerEntry entries = 1;
+}
+
+message CircuitBreakerEntry {
+  ProviderCode provider = 1;
+  CircuitState state = 2;
+  google.protobuf.Timestamp state_entered_at = 3;
+  uint32 recent_failures = 4;
+  double failure_rate_percent = 5;
+}

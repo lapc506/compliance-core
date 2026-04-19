@@ -11,13 +11,14 @@
   },
   "scripts": {
     "build": "pnpm -r --filter \"./packages/*\" build",
-    "test": "vitest run",
+    "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
-    "proto:gen": "buf generate",
-    "proto:lint": "buf lint",
+    "proto:gen": "cd proto && buf generate",
+    "proto:lint": "cd proto && buf lint",
+    "proto:breaking": "cd proto && buf breaking --against '.git#branch=main,subdir=proto'",
     "typecheck": "pnpm -r --filter \"./packages/*\" typecheck"
   },
   "devDependencies": {

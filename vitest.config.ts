@@ -13,12 +13,7 @@ export default defineConfig({
   test: {
     globals: false,
     include: ["packages/**/*.{test,spec}.ts"],
-    exclude: [
-      "**/node_modules/**",
-      "**/dist/**",
-      "**/generated/**",
-      "**/coverage/**",
-    ],
+    exclude: ["**/node_modules/**", "**/dist/**", "**/generated/**", "**/coverage/**"],
     setupFiles: ["./vitest.setup.ts"],
     coverage: {
       provider: "v8",

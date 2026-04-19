@@ -1,0 +1,72 @@
+syntax = "proto3";
+
+package compliance.v1;
+
+import "google/protobuf/timestamp.proto";
+import "compliance/v1/common.proto";
+
+// -----------------------------------------------------------------------------
+// ComplianceAML — transaction monitoring and suspicious-report export.
+// Fase 1: all RPCs return UNIMPLEMENTED. The proto exists so consumers can
+// see the shape and plan integrations; real wiring lands in Fase 2
+// (rule-engine) and Fase 3 (Snap Scan Agent ML).
+// -----------------------------------------------------------------------------
+service ComplianceAML {
+  rpc EvaluateTransaction(EvaluateTxRequest) returns (TxRiskAssessment);
+  rpc FlagSuspicious(FlagSuspiciousRequest) returns (Ack);
+  rpc GetAlerts(GetAlertsRequest) returns (stream AMLAlert);
+  rpc ExportSAR(ExportSARRequest) returns (SARBundle);
+}
+
+// -----------------------------------------------------------------------------
+// Fase 2 placeholders — intentionally thin to avoid premature commitment.
+// -----------------------------------------------------------------------------
+message EvaluateTxRequest {
+  string transaction_id = 1;
+  SubjectRef originator = 2;
+  SubjectRef beneficiary = 3;
+  string amount = 4;
+  string currency = 5;
+  google.protobuf.Timestamp occurred_at = 6;
+}
+
+message TxRiskAssessment {
+  string transaction_id = 1;
+  uint32 risk_score = 2;
+  repeated string triggered_rules = 3;
+  bool should_flag = 4;
+}
+
+message FlagSuspiciousRequest {
+  string transaction_id = 1;
+  string reason = 2;
+  string analyst_user_id = 3;
+}
+
+message GetAlertsRequest {
+  SubjectRef subject_filter = 1;
+  google.protobuf.Timestamp from = 2;
+  google.protobuf.Timestamp to = 3;
+  uint32 limit = 4;
+}
+
+message AMLAlert {
+  UUID id = 1;
+  string transaction_id = 2;
+  uint32 severity = 3;
+  repeated string triggered_rules = 4;
+  google.protobuf.Timestamp detected_at = 5;
+}
+
+message ExportSARRequest {
+  // Regulator format: SICORE (CR), SAT (MX), SIREL (CO).
+  string regulator_format = 1;
+  google.protobuf.Timestamp from = 2;
+  google.protobuf.Timestamp to = 3;
+}
+
+message SARBundle {
+  bytes payload = 1;
+  string format = 2;
+  google.protobuf.Timestamp generated_at = 3;
+}

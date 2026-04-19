@@ -1,0 +1,91 @@
+syntax = "proto3";
+
+package compliance.v1;
+
+import "google/protobuf/descriptor.proto";
+
+// -----------------------------------------------------------------------------
+// Custom field options for PII marking + redaction middleware.
+// Any field containing personally identifiable information MUST be annotated
+// with `[(compliance.v1.pii) = true]`. The grpc redaction interceptor
+// (packages/server/src/grpc/interceptors/redaction.ts) walks the proto
+// descriptor and replaces annotated field values with "[REDACTED]" before
+// any log/trace sink receives them.
+// -----------------------------------------------------------------------------
+extend google.protobuf.FieldOptions {
+  // Field is personally identifiable; redact before logging.
+  bool pii = 50001;
+}
+
+// -----------------------------------------------------------------------------
+// Core scalar wrappers (kept as messages so future validation options can
+// attach without breaking changes).
+// -----------------------------------------------------------------------------
+
+// Canonical UUID v4. Backed by domain/value-objects/uuid.ts.
+message UUID {
+  string value = 1;
+}
+
+// Personally identifiable string. Serialization MUST never leak `value` to
+// logs — middleware redacts based on the `pii` field option on the enclosing
+// field, not the message type itself.
+message PIIString {
+  string value = 1 [(pii) = true];
+}
+
+// Hex-encoded 32-byte digest (SHA-256). 64 chars, lowercase.
+message Hex32 {
+  string value = 1;
+}
+
+// -----------------------------------------------------------------------------
+// Jurisdictions supported in Fase 1 (spec §4.1).
+// -----------------------------------------------------------------------------
+enum Jurisdiction {
+  JURISDICTION_UNSPECIFIED = 0;
+  JURISDICTION_CR = 1;
+  JURISDICTION_MX = 2;
+  JURISDICTION_CO = 3;
+  JURISDICTION_GT = 4;
+  JURISDICTION_US = 5;
+  JURISDICTION_EU = 6;
+  JURISDICTION_OTHER = 7;
+}
+
+// -----------------------------------------------------------------------------
+// Subject reference — every verification, match, and audit event targets
+// either an Identity (natural person) or a BusinessEntity.
+// -----------------------------------------------------------------------------
+message SubjectRef {
+  oneof kind {
+    UUID identity_id = 1;
+    UUID business_id = 2;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Generic acknowledgment used by write RPCs that do not need to return
+// domain data (webhooks, audit appends).
+// -----------------------------------------------------------------------------
+message Ack {
+  bool ok = 1;
+  string message = 2;
+  string correlation_id = 3;
+}
+
+// -----------------------------------------------------------------------------
+// Provider identifier (spec §2, §7). Fase 1 wires PERSONA + ONDATO + OFAC_FEED.
+// -----------------------------------------------------------------------------
+enum ProviderCode {
+  PROVIDER_CODE_UNSPECIFIED = 0;
+  PROVIDER_CODE_PERSONA = 1;
+  PROVIDER_CODE_ONDATO = 2;
+  PROVIDER_CODE_INCODE = 3;
+  PROVIDER_CODE_SNAP_COMPLIANCE = 4;
+  PROVIDER_CODE_OFAC_FEED = 5;
+  PROVIDER_CODE_UN_FEED = 6;
+  PROVIDER_CODE_EU_FEED = 7;
+  PROVIDER_CODE_WORLD_ID = 8;
+  PROVIDER_CODE_ZK_PROOF_OF_HUMANITY = 9;
+}

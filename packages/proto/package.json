@@ -1,0 +1,28 @@
+{
+  "name": "@compliance-core/proto",
+  "version": "0.1.0-dev",
+  "private": true,
+  "description": "Generated TypeScript types and service definitions from compliance-core v1 proto files.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "src/generated"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "clean": "rm -rf dist src/generated"
+  },
+  "dependencies": {
+    "@bufbuild/protobuf": "2.11.0",
+    "@connectrpc/connect": "2.0.2"
+  },
+  "devDependencies": {
+    "typescript": "5.6.3"
+  }
+}

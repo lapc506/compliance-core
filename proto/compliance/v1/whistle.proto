@@ -1,0 +1,92 @@
+syntax = "proto3";
+
+package compliance.v1;
+
+import "google/protobuf/timestamp.proto";
+import "compliance/v1/common.proto";
+
+// -----------------------------------------------------------------------------
+// ComplianceWhistle — whistleblower channel with chain-of-custody.
+// Fase 1: all RPCs return UNIMPLEMENTED. Full wiring lands in Fase 2 with
+// LocalEncryptedAdapter or Snap Compliance Whistleblower integration.
+// -----------------------------------------------------------------------------
+service ComplianceWhistle {
+  rpc SubmitReport(SubmitReportRequest) returns (ReportAck);
+  rpc FetchReports(FetchReportsRequest) returns (stream WhistleblowerReport);
+  rpc AssignReport(AssignReportRequest) returns (Ack);
+  rpc AnnotateReport(AnnotateReportRequest) returns (Ack);
+  rpc CloseReport(CloseReportRequest) returns (Ack);
+}
+
+enum ReportCategory {
+  REPORT_CATEGORY_UNSPECIFIED = 0;
+  REPORT_CATEGORY_FRAUD = 1;
+  REPORT_CATEGORY_HARASSMENT = 2;
+  REPORT_CATEGORY_DISCRIMINATION = 3;
+  REPORT_CATEGORY_SAFETY = 4;
+  REPORT_CATEGORY_DATA_BREACH = 5;
+  REPORT_CATEGORY_CORRUPTION = 6;
+  REPORT_CATEGORY_OTHER = 7;
+}
+
+enum ReportStatus {
+  REPORT_STATUS_UNSPECIFIED = 0;
+  REPORT_STATUS_NEW = 1;
+  REPORT_STATUS_TRIAGED = 2;
+  REPORT_STATUS_INVESTIGATING = 3;
+  REPORT_STATUS_CLOSED_ACTIONED = 4;
+  REPORT_STATUS_CLOSED_UNFOUNDED = 5;
+}
+
+message SubmitReportRequest {
+  ReportCategory category = 1;
+  bool anonymous = 2;
+  // Submitter identity reference (omitted when anonymous).
+  UUID submitter_identity_id = 3;
+  PIIString contact_hint = 4;
+  PIIString title = 5;
+  PIIString narrative = 6;
+}
+
+message ReportAck {
+  UUID report_id = 1;
+  string tracking_code = 2;
+  google.protobuf.Timestamp submitted_at = 3;
+}
+
+message FetchReportsRequest {
+  ReportStatus status_filter = 1;
+  ReportCategory category_filter = 2;
+  google.protobuf.Timestamp from = 3;
+  google.protobuf.Timestamp to = 4;
+  uint32 limit = 5;
+}
+
+message WhistleblowerReport {
+  UUID id = 1;
+  ReportCategory category = 2;
+  bool anonymous = 3;
+  ReportStatus status = 4;
+  string assignee_user_id = 5;
+  google.protobuf.Timestamp submitted_at = 6;
+  google.protobuf.Timestamp closed_at = 7;
+  uint32 custody_chain_length = 8;
+}
+
+message AssignReportRequest {
+  UUID report_id = 1;
+  string assignee_user_id = 2;
+}
+
+message AnnotateReportRequest {
+  UUID report_id = 1;
+  string actor_user_id = 2;
+  string annotation = 3;
+}
+
+message CloseReportRequest {
+  UUID report_id = 1;
+  ReportStatus final_status = 2;
+  string actor_user_id = 3;
+  string resolution_summary = 4;
+}
