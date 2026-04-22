@@ -17,3 +17,45 @@ export {
   type CompleteVerificationOutput,
   type ProviderVerdict,
 } from "./commands/complete-verification.js";
+export {
+  ScreenSanctions,
+  type ScreenSanctionsDeps,
+  type ScreenSanctionsInput,
+  type ScreenSanctionsOutput,
+} from "./commands/screen-sanctions.js";
+export {
+  RefreshSanctionsLists,
+  type RefreshSanctionsListsDeps,
+  type RefreshSanctionsListsInput,
+  type RefreshSanctionsListsOutput,
+} from "./commands/refresh-sanctions-lists.js";
+export {
+  AppendAuditEvent,
+  type AppendAuditEventDeps,
+  type AppendAuditEventInput,
+} from "./commands/append-audit-event.js";
+
+// Queries
+export {
+  GetVerificationStatus,
+  type GetVerificationStatusDeps,
+  type GetVerificationStatusInput,
+  ListVerifications,
+  type ListVerificationsDeps,
+  type ListVerificationsInput,
+  type ListVerificationsOutput,
+} from "./queries/verification-queries.js";
+export {
+  GetSanctionsMatches,
+  type GetSanctionsMatchesDeps,
+  type GetSanctionsMatchesInput,
+  type GetSanctionsMatchesOutput,
+} from "./queries/sanctions-queries.js";
+export {
+  VerifyAuditIntegrity,
+  type VerifyAuditIntegrityDeps,
+  type VerifyAuditIntegrityInput,
+  ExportAuditLog,
+  type ExportAuditLogDeps,
+  type ExportAuditLogInput,
+} from "./queries/audit-queries.js";
