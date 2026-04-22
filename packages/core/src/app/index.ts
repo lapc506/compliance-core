@@ -1,6 +1,7 @@
 // Public re-exports — consumers import from "@compliance-core/core/app"
 
 export * from "./errors.js";
+export * from "./middleware/index.js";
 export * from "./ports/index.js";
 
 // Commands
